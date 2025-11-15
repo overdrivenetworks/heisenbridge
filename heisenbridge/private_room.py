@@ -750,6 +750,12 @@ class PrivateRoom(Room):
 
         return messages
 
+    def _strip_irc_formatting(self, text: str) -> str:
+        """Remove IRC formatting characters from text"""
+        for char in IRC_ALLOWED_CONTROL_CHARS:
+            text = text.replace(char, "")
+        return text
+
     async def _send_message(self, event, func, prefix=""):
         # try to find out if this was a reply
         reply_to = None
@@ -807,8 +813,9 @@ class PrivateRoom(Room):
                     self.react(event.event_id, "\u2702")  # scissors
 
                 if self.use_pastebin:
+                    clean_messages = "\n".join(self._strip_irc_formatting(msg) for msg in messages)
                     content_uri = await self.az.intent.upload_media(
-                        "\n".join(messages).encode("utf-8"), mime_type="text/plain; charset=UTF-8"
+                        clean_messages.encode("utf-8"), mime_type="text/plain; charset=UTF-8"
                     )
 
                     if self.max_lines == 1:
