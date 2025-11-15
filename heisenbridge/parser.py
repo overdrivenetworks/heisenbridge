@@ -11,17 +11,27 @@ from mautrix.util.formatter.parser import MatrixParser
 from mautrix.util.formatter.parser import RecursionContext
 from mautrix.util.formatter.parser import T
 
+IRC_ALLOWED_CONTROL_CHARS = (
+    "\x02"  # bold
+    "\x03"  # ASCII color
+    "\x04"  # hex color
+    "\x1d"  # italics
+    "\x1e"  # strikethrough
+    "\x1f"  # underline
+    "\u200b"  # ZWSP (not strictly IRC formatting, but added here for convenience)
+)
+
 
 class IRCString(MarkdownString):
     def format(self, entity_type: EntityType, **kwargs) -> "IRCString":
         if entity_type == EntityType.BOLD:
-            self.text = f"*{self.text}*"
+            self.text = f"\x02{self.text}\x02"
         elif entity_type == EntityType.ITALIC:
-            self.text = f"_{self.text}_"
+            self.text = f"\x1d{self.text}\x1d"
         elif entity_type == EntityType.STRIKETHROUGH:
-            self.text = f"~{self.text}~"
+            self.text = f"\x1e{self.text}\x1e"
         elif entity_type == EntityType.UNDERLINE:
-            self.text = self.text
+            self.text = f"\x1f{self.text}\x1f"
         elif entity_type == EntityType.URL:
             if kwargs["url"] != self.text:
                 self.text = f"{self.text} ({kwargs['url']})"

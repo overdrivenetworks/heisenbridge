@@ -27,6 +27,7 @@ from heisenbridge.command_parse import CommandManager
 from heisenbridge.command_parse import CommandParser
 from heisenbridge.command_parse import CommandParserError
 from heisenbridge.room import Room
+from heisenbridge.parser import IRC_ALLOWED_CONTROL_CHARS
 
 
 class NetworkRoom:
@@ -736,8 +737,8 @@ class PrivateRoom(Room):
             if (i == 0 or self.prefix_all) and prefix and len(prefix) > 0:
                 line = prefix + line
 
-                # filter control characters except ZWSP
-                line = "".join(c for c in line if unicodedata.category(c)[0] != "C" or c == "\u200B")
+                # filter control characters except ZWSP and IRC formatting chars
+                line = "".join(c for c in line if unicodedata.category(c)[0] != "C" or c in IRC_ALLOWED_CONTROL_CHARS)
 
             messages += split_long(
                 self.network.conn.real_nickname,
