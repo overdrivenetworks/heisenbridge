@@ -48,6 +48,10 @@ class IRCString(MarkdownString):
         elif entity_type == EntityType.USER_MENTION:
             if kwargs["displayname"] is not None:
                 self.text = kwargs["displayname"]
+        elif entity_type == EntityType.COLOR:
+            if kwargs["color"] is not None:
+                color = kwargs["color"].lstrip("#")
+                self.text = f"\x04{color}{self.text}\x04"
 
         return self
 
