@@ -222,6 +222,9 @@ class BridgeAppService(AppService):
 
         # always ensure the displayname is up-to-date
         if update_cache:
+            # FIXME: make this a proper config option
+            if network.endswith('-relay'):
+                nick += ' (IRC)'
             await self.cache_user(user_id, nick)
 
         return user_id
