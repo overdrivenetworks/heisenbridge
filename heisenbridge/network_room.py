@@ -142,6 +142,7 @@ class NetworkRoom(Room):
         self.tls_cert = None
         self.rejoin_invite = True
         self.rejoin_kick = False
+        self.rejoin_connect = True
         self.caps = ["message-tags", "chghost", "znc.in/self-message"]
         self.forward = False
         self.backoff = 0
@@ -468,7 +469,11 @@ class NetworkRoom(Room):
         cmd.add_argument("--disable-invite", dest="invite", action="store_false", help="Disable rejoin on invite")
         cmd.add_argument("--enable-kick", dest="kick", action="store_true", help="Enable rejoin on kick")
         cmd.add_argument("--disable-kick", dest="kick", action="store_false", help="Disable rejoin on kick")
-        cmd.set_defaults(invite=None, kick=None)
+        cmd.add_argument("--enable-connect", dest="connect", action="store_true", help="Enable rejoin on connect")
+        cmd.add_argument("--disable-connect", dest="connect", action="store_false",
+                         help="Disable rejoin on connect. Only use this if you're connected to a bouncer that already "
+                              "handles rejoining channels.")
+        cmd.set_defaults(invite=None, kick=None, connect=None)
         self.commands.register(cmd, self.cmd_rejoin)
 
         cmd = CommandParser(prog="STATUS", description="show current network status")
@@ -587,6 +592,9 @@ class NetworkRoom(Room):
         if "rejoin_kick" in config:
             self.rejoin_kick = config["rejoin_kick"]
 
+        if "rejoin_connect" in config:
+            self.rejoin_connect = config["rejoin_connect"]
+
         if "caps" in config:
             self.caps = config["caps"]
 
@@ -613,6 +621,7 @@ class NetworkRoom(Room):
             "color": self.color,
             "rejoin_invite": self.rejoin_invite,
             "rejoin_kick": self.rejoin_kick,
+            "rejoin_connect": self.rejoin_connect,
             "caps": self.caps,
             "forward": self.forward,
         }
@@ -1102,8 +1111,13 @@ class NetworkRoom(Room):
             self.rejoin_kick = args.kick
             await self.save()
 
+        if args.connect is not None:
+            self.rejoin_connect = args.connect
+            await self.save()
+
         self.send_notice(f"Rejoin on invite is {'enabled' if self.rejoin_invite else 'disabled'}")
         self.send_notice(f"Rejoin on kick is {'enabled' if self.rejoin_kick else 'disabled'}")
+        self.send_notice(f"Rejoin on connect is {'enabled' if self.rejoin_connect else 'disabled'}")
 
     async def cmd_status(self, args) -> None:
         if self.connected_at > 0:
@@ -1745,6 +1759,10 @@ class NetworkRoom(Room):
 
             # detect disconnect before we get to join
             if not self.conn or not self.conn.connected:
+                return
+
+            if not self.rejoin_connect:
+                self.send_notice("Not rejoining channels automatically. (See `REJOIN -h` for how modify this setting)")
                 return
 
             channels = []
